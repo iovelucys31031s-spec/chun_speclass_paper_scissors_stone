@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜拳小高手 - 完整教學版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* 引入芫荽體 (Iansui) */
+        @font-face {
+            font-family: 'Iansui';
+            src: url('https://cdn.jsdelivr.net/npm/iansui@latest/data/Iansui-Regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --serenity: #92A8D1;
+            --rose: #F7CAC9;
+            --cream: #FAF9F6;
+            --dark-gray: #333333;
+        }
+
+        /* 背景調整 */
+        body {
+            background: linear-gradient(to bottom, rgba(146, 168, 209, 0.6), rgba(247, 202, 201, 0.6)), url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIi8+Cjwvc3ZnPg=='); 
+            background-color: white; 
+            background-attachment: fixed;
+            /* 修改字體設定，優先使用芫荽體 */
+            font-family: "Iansui", "Microsoft JhengHei", "微軟正黑體", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            width: 95%;
+            max-width: 900px;
+            min-height: 650px;
+            padding: 2rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn {
+            transition: transform 0.1s, box-shadow 0.2s;
+            font-weight: bold;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
+
+        /* 選項按鈕樣式 */
+        .rps-btn {
+            width: 150px;
+            height: 150px;
+            border-radius: 20px;
+            background: white;
+            border: 4px solid transparent;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .rps-btn:hover:not(:disabled) { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .rps-btn.selected {
+            border-color: #FFD700;
+            background-color: #FFFBE6;
+            transform: scale(1.05);
+            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.3);
+        }
+
+        /* 內容顯示模式 */
+        .rps-icon { font-size: 5rem; color: #555; display: inline-block; }
+        .rps-text { font-size: 3rem; font-weight: 900; color: #333; }
+        .rps-img { width: 100%; height: 100%; object-fit: cover; }
+
+        .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.4s ease; }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 顏色類別 */
+        .bg-serenity-solid { background-color: var(--serenity); }
+        .bg-rose-solid { background-color: var(--rose); }
+        .text-serenity { color: var(--serenity); }
+        .text-rose { color: var(--rose); }
+        
+        .theme-serenity-text { color: var(--cream); text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .theme-rose-text { color: var(--dark-gray); }
+
+        .input-box {
+            border: 2px solid #e5e7eb;
+            padding: 0.8rem;
+            border-radius: 0.8rem;
+            width: 100%;
+            font-size: 1.2rem;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: "Iansui", sans-serif; /* 輸入框也套用芫荽體 */
+        }
+        .input-box:focus { border-color: var(--serenity); }
+
+        /* 勝利動畫 */
+        .winner-anim { animation: pulse-scale 1.5s infinite; z-index: 10; }
+        @keyframes pulse-scale {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255, 215, 0, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+
+        /* NEW: 猜拳過程動畫 (上下搖動) */
+        @keyframes handShake {
+            0% { transform: translateY(0) rotate(90deg); }
+            50% { transform: translateY(-30px) rotate(90deg); }
+            100% { transform: translateY(0) rotate(90deg); }
+        }
+        /* 右手鏡像 */
+        @keyframes handShakeRight {
+            0% { transform: scaleX(-1) translateY(0) rotate(90deg); }
+            50% { transform: scaleX(-1) translateY(-30px) rotate(90deg); }
+            100% { transform: scaleX(-1) translateY(0) rotate(90deg); }
+        }
+
+        .anim-hand-left {
+            font-size: 8rem;
+            animation: handShake 0.8s infinite;
+            display: inline-block;
+        }
+        .anim-hand-right {
+            font-size: 8rem;
+            animation: handShakeRight 0.8s infinite; /* 鏡像翻轉 */
+            display: inline-block;
+        }
+        
+        .anim-text-pop {
+            animation: popIn 0.5s ease;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="glass-panel">
+        <!-- 計分板 -->
+        <div id="scoreboard" class="hidden absolute top-4 left-0 right-0 flex justify-center gap-8 text-xl font-bold text-gray-600 z-20 pointer-events-none">
+            <div class="flex items-center gap-2 bg-white/80 backdrop-blur px-4 py-2 rounded-full border border-blue-200 shadow-sm pointer-events-auto">
+                <span id="sb-name-a" class="text-blue-500">A隊</span> 
+                <span class="text-gray-400">|</span> 
+                <span id="sb-score-a" class="text-2xl text-gray-800">0</span>
+            </div>
+            <div class="flex items-center gap-2 bg-white/80 backdrop-blur px-4 py-2 rounded-full border border-pink-200 shadow-sm pointer-events-auto">
+                <span id="sb-name-b" class="text-pink-500">B隊</span> 
+                <span class="text-gray-400">|</span> 
+                <span id="sb-score-b" class="text-2xl text-gray-800">0</span>
+            </div>
+        </div>
+
+        <!-- PAGE 1: 首頁 -->
+        <div id="p-home" class="page active">
+            <h1 class="text-6xl font-black mb-12 tracking-wider text-gray-700 drop-shadow-sm flex items-center gap-4 text-center flex-wrap justify-center">
+                <i class="fa-solid fa-hand-scissors text-rose-300" style="transform: rotate(90deg);"></i>
+                猜拳小高手
+                <i class="fa-solid fa-hand-rock text-blue-300"></i>
+            </h1>
+            
+            <button onclick="goToPage('p-setup')" class="btn bg-green-500 hover:bg-green-600 text-white text-3xl px-16 py-8 mb-8 shadow-xl w-full max-w-lg rounded-2xl">
+                <i class="fa-solid fa-play mr-4"></i> 開始猜拳
+            </button>
+            
+            <button onclick="requestBackendAccess()" class="btn bg-gray-100 hover:bg-gray-200 text-gray-500 text-lg px-8 py-3 w-full max-w-xs rounded-xl">
+                <i class="fa-solid fa-gear mr-2"></i> 教師後台
+            </button>
+        </div>
+
+        <!-- PAGE 2: 初始設定 -->
+        <div id="p-setup" class="page">
+            <h2 class="text-3xl font-bold mb-6 text-gray-700">隊伍設定</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-8">
+                <!-- A隊 -->
+                <div class="bg-blue-50 p-6 rounded-2xl border-2 border-blue-100 flex flex-col items-center">
+                    <div class="w-16 h-16 bg-serenity-solid rounded-full mb-4 flex items-center justify-center text-white font-bold text-xl">A</div>
+                    <label class="block text-gray-600 mb-2 font-bold">隊伍名稱</label>
+                    <input type="text" id="setup-name-a" value="A隊" class="input-box bg-white">
+                </div>
+                
+                <!-- B隊 -->
+                <div class="bg-pink-50 p-6 rounded-2xl border-2 border-pink-100 flex flex-col items-center">
+                    <div class="w-16 h-16 bg-rose-solid rounded-full mb-4 flex items-center justify-center text-gray-700 font-bold text-xl">B</div>
+                    <label class="block text-gray-600 mb-2 font-bold">隊伍名稱</label>
+                    <input type="text" id="setup-name-b" value="B隊" class="input-box bg-white">
+                </div>
+            </div>
+
+            <!-- 顏色分配 -->
+            <div class="mb-6 w-full max-w-lg bg-gray-50 p-4 rounded-xl flex items-center justify-between">
+                <span class="font-bold text-gray-600">顏色分配</span>
+                <div class="flex gap-4">
+                    <label class="flex items-center cursor-pointer gap-2">
+                        <input type="radio" name="color-scheme" value="normal" checked class="w-5 h-5 accent-blue-500">
+                        <span class="text-sm">A藍 / B粉</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer gap-2">
+                        <input type="radio" name="color-scheme" value="swap" class="w-5 h-5 accent-pink-500">
+                        <span class="text-sm">A粉 / B藍</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 初始先攻選擇 -->
+            <div class="mb-8 w-full max-w-lg">
+                <label class="block text-center text-xl font-bold text-gray-700 mb-4">誰先開始？</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="setFirstTurn('A')" class="btn bg-white border-2 border-gray-200 py-4 text-lg hover:border-blue-400 focus:ring-2 ring-blue-300 first-turn-btn" data-team="A">A隊先</button>
+                    <button onclick="setFirstTurn('B')" class="btn bg-white border-2 border-gray-200 py-4 text-lg hover:border-pink-400 focus:ring-2 ring-pink-300 first-turn-btn" data-team="B">B隊先</button>
+                </div>
+            </div>
+
+            <div class="flex gap-4 w-full">
+                <button onclick="goToPage('p-home')" class="btn bg-gray-200 text-gray-600 text-xl px-6 py-3 flex-1">返回</button>
+                <button onclick="finishSetup()" class="btn bg-blue-500 hover:bg-blue-600 text-white text-xl px-6 py-3 flex-1 shadow-lg">下一步 (驗證)</button>
+            </div>
+        </div>
+
+        <!-- NEW PAGE: 下一局先攻設定 -->
+        <div id="p-next-round-setup" class="page">
+            <h2 class="text-3xl font-bold mb-8 text-gray-700">下一局準備</h2>
+            <p class="text-xl text-gray-500 mb-8">請老師選擇這局由哪一隊先攻？</p>
+            
+            <div class="grid grid-cols-2 gap-8 w-full max-w-md mb-12">
+                <button onclick="selectNextRoundStarter('A')" class="btn bg-blue-100 hover:bg-blue-200 text-blue-700 text-2xl py-8 rounded-2xl border-2 border-blue-200">
+                    <span id="next-name-a">A隊</span> 先
+                </button>
+                <button onclick="selectNextRoundStarter('B')" class="btn bg-pink-100 hover:bg-pink-200 text-pink-700 text-2xl py-8 rounded-2xl border-2 border-pink-200">
+                    <span id="next-name-b">B隊</span> 先
+                </button>
+            </div>
+        </div>
+
+        <!-- PAGE 3: 密碼驗證 -->
+        <div id="p-verify" class="page">
+            <h2 class="text-2xl font-bold mb-2 text-gray-700" id="verify-title">老師確認</h2>
+            <p class="text-gray-500 mb-6 text-lg" id="verify-desc">請輸入密碼以繼續</p>
+            
+            <div class="flex flex-col items-center w-full max-w-xs">
+                <!-- 密碼遮蔽 -->
+                <input type="password" id="pin-input" readonly class="input-box text-3xl tracking-widest mb-4 bg-gray-50" placeholder="****">
+                <div id="pin-error" class="text-red-500 font-bold hidden mb-4 text-center">密碼錯誤</div>
+                
+                <div class="grid grid-cols-3 gap-3 w-full mb-4">
+                    <button onclick="addPin('1')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">1</button>
+                    <button onclick="addPin('2')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">2</button>
+                    <button onclick="addPin('3')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">3</button>
+                    <button onclick="addPin('4')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">4</button>
+                    <button onclick="addPin('5')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">5</button>
+                    <button onclick="addPin('6')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">6</button>
+                    <button onclick="addPin('7')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">7</button>
+                    <button onclick="addPin('8')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">8</button>
+                    <button onclick="addPin('9')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">9</button>
+                    <button onclick="clearPin()" class="btn bg-red-50 text-red-500 text-xl py-3">C</button>
+                    <button onclick="addPin('0')" class="btn bg-white border border-gray-200 text-xl py-3 shadow-sm active:bg-gray-100">0</button>
+                    <button onclick="submitPin()" class="btn bg-green-500 text-white text-xl py-3 shadow-sm active:bg-green-600"><i class="fa-solid fa-check"></i></button>
+                </div>
+                <button onclick="cancelPin()" class="text-gray-400 underline mt-2">取消返回</button>
+            </div>
+        </div>
+
+        <!-- PAGE 4: 遊戲選擇頁 -->
+        <div id="p-game-select" class="page">
+            <div id="select-container" class="w-full h-full flex flex-col items-center justify-center rounded-3xl p-4 transition-colors duration-500">
+                <h2 id="turn-title" class="text-4xl font-black mb-10 text-center drop-shadow-md">A隊 選擇</h2>
+                
+                <!-- 防衝動遮罩 -->
+                <div id="impulse-mask" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-3xl">
+                    <div class="flex flex-col items-center">
+                        <i class="fa-solid fa-hand text-6xl text-gray-400 mb-4 animate-bounce"></i>
+                        <div class="text-3xl font-bold text-gray-600">請稍等...</div>
+                    </div>
+                </div>
+
+                <div id="options-container" class="flex flex-wrap justify-center gap-6 md:gap-10 mb-12">
+                    <!-- 選項由 JS 生成 -->
+                </div>
+
+                <button id="btn-confirm-selection" onclick="confirmSelection()" disabled class="btn bg-gray-800 text-white text-2xl px-16 py-5 shadow-2xl opacity-40 transition-all rounded-full">
+                    <i class="fa-solid fa-check mr-3"></i> 確定
+                </button>
+            </div>
+        </div>
+
+        <!-- PAGE 5: 過場遮蔽 -->
+        <div id="p-transition" class="page">
+            <div class="bg-gray-100 w-full h-full rounded-3xl flex flex-col items-center justify-center p-8 text-center">
+                <!-- 特務圖示與背景 -->
+                <div class="w-40 h-40 bg-gray-800 rounded-full flex items-center justify-center mb-8 shadow-xl">
+                    <i class="fa-solid fa-user-secret text-7xl text-white"></i>
+                </div>
+                
+                <h2 id="trans-title" class="text-4xl font-bold text-gray-700 mb-6">換 B隊 準備！</h2>
+                
+                <!-- 正向提示語句 -->
+                <div class="text-xl text-gray-500 mb-12 font-bold bg-white px-8 py-4 rounded-full border-2 border-gray-200 shadow-sm flex items-center">
+                    <i class="fa-solid fa-star text-yellow-400 mr-2 text-2xl"></i>
+                    <span>保持神秘，尊重對手的秘密喔！</span>
+                    <i class="fa-solid fa-star text-yellow-400 ml-2 text-2xl"></i>
+                </div>
+                
+                <button onclick="startNextTurn()" class="btn bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-3xl px-16 py-6 shadow-xl font-bold rounded-2xl">
+                    開始選擇
+                </button>
+            </div>
+        </div>
+
+        <!-- NEW PAGE: 猜拳動畫頁 (Point: 新增此頁) -->
+        <div id="p-animation" class="page">
+            <div class="relative w-full h-full flex items-center justify-center">
+                
+                <!-- 左手 (A隊位置) -->
+                <div class="absolute left-10 md:left-20 flex flex-col items-center">
+                    <h3 id="anim-name-a" class="text-3xl font-bold mb-4 text-serenity">A隊</h3>
+                    <!-- 預設握拳 -->
+                    <i id="anim-hand-a" class="fa-solid fa-hand-back-fist anim-hand-left text-serenity"></i>
+                </div>
+
+                <!-- 中間文字 -->
+                <div id="anim-text" class="text-6xl md:text-8xl font-black text-gray-700 z-10 anim-text-pop">
+                    剪刀...
+                </div>
+
+                <!-- 右手 (B隊位置) -->
+                <div class="absolute right-10 md:right-20 flex flex-col items-center">
+                    <h3 id="anim-name-b" class="text-3xl font-bold mb-4 text-rose">B隊</h3>
+                    <!-- 預設握拳 -->
+                    <i id="anim-hand-b" class="fa-solid fa-hand-back-fist anim-hand-right text-rose"></i>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- PAGE 6: 結果頁 -->
+        <div id="p-result" class="page">
+            <div class="relative w-full flex flex-col items-center pt-8">
+                <!-- 勝利標題 -->
+                <h2 id="result-title" class="text-5xl font-black text-gray-800 mb-8 drop-shadow-sm text-center">A隊 贏了！</h2>
+                
+                <div class="flex items-center justify-center gap-4 md:gap-12 w-full mb-10">
+                    <!-- A隊結果 -->
+                    <div class="flex flex-col items-center transition-all duration-500 relative" id="res-box-a">
+                        <div class="absolute -top-12 opacity-0 transition-opacity duration-500" id="crown-a">
+                            <i class="fa-solid fa-crown text-5xl text-yellow-400 drop-shadow-md"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3 text-gray-600" id="res-name-a">A隊</h3>
+                        <div id="res-content-a" class="w-32 h-32 md:w-40 md:h-40 bg-white rounded-2xl shadow-lg border-4 border-blue-200 flex items-center justify-center overflow-hidden">
+                            <!-- 內容 JS 填入 -->
+                        </div>
+                        <div id="script-a" class="hidden mt-4 bg-white p-3 rounded-lg border border-blue-200 shadow-sm text-center w-40 text-sm font-bold text-blue-600"></div>
+                    </div>
+
+                    <div class="text-3xl font-bold text-gray-300 italic">VS</div>
+
+                    <!-- B隊結果 -->
+                    <div class="flex flex-col items-center transition-all duration-500 relative" id="res-box-b">
+                        <div class="absolute -top-12 opacity-0 transition-opacity duration-500" id="crown-b">
+                            <i class="fa-solid fa-crown text-5xl text-yellow-400 drop-shadow-md"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3 text-gray-600" id="res-name-b">B隊</h3>
+                        <div id="res-content-b" class="w-32 h-32 md:w-40 md:h-40 bg-white rounded-2xl shadow-lg border-4 border-pink-200 flex items-center justify-center overflow-hidden">
+                            <!-- 內容 JS 填入 -->
+                        </div>
+                        <div id="script-b" class="hidden mt-4 bg-white p-3 rounded-lg border border-pink-200 shadow-sm text-center w-40 text-sm font-bold text-pink-600"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-4 w-full max-w-sm">
+                    <!-- 2. 下一局邏輯改變 -->
+                    <button onclick="prepareNextRound()" class="btn bg-green-500 hover:bg-green-600 text-white text-2xl px-8 py-4 shadow-lg w-full rounded-xl">
+                        <i class="fa-solid fa-arrow-right mr-3"></i> 下一局
+                    </button>
+                    
+                    <button onclick="endGameVerify()" class="btn bg-gray-200 hover:bg-gray-300 text-gray-500 text-lg px-6 py-2 w-full rounded-lg">
+                        結束遊戲
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 7: 教師後台 -->
+        <div id="p-backend" class="page overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700 w-full text-center border-b pb-4">教師後台設定</h2>
+            
+            <div class="w-full max-w-lg space-y-6 h-full overflow-y-auto px-2 pb-4">
+                
+                <!-- A. 音效設定 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-lg font-bold text-gray-800 mb-3 border-b pb-2">音效設定 (Sound)</div>
+                    <label class="flex items-center justify-between mb-2 cursor-pointer">
+                        <span class="text-gray-600">開啟點擊音效</span>
+                        <input type="checkbox" id="set-sound-click" class="w-6 h-6 accent-blue-500">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="text-gray-600">開啟勝利歡呼音效</span>
+                        <input type="checkbox" id="set-sound-win" class="w-6 h-6 accent-blue-500">
+                    </label>
+                </div>
+
+                <!-- B. 遊戲難度 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-lg font-bold text-gray-800 mb-3 border-b pb-2">遊戲難度 (Difficulty)</div>
+                    <label class="flex items-center justify-between mb-2 cursor-pointer">
+                        <span class="text-gray-600">隨機排列選項</span>
+                        <input type="checkbox" id="set-random" class="w-6 h-6 accent-blue-500">
+                    </label>
+                    <label class="flex items-center justify-between mb-2 cursor-pointer">
+                        <span class="text-gray-600">防衝動延遲 (1.5秒鎖定)</span>
+                        <input type="checkbox" id="set-impulse" class="w-6 h-6 accent-blue-500">
+                    </label>
+                    <!-- 3. 計分板開關 -->
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="text-gray-600">顯示計分板</span>
+                        <input type="checkbox" id="set-show-score" class="w-6 h-6 accent-blue-500">
+                    </label>
+                </div>
+
+                <!-- C. 視覺風格 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-lg font-bold text-gray-800 mb-3 border-b pb-2">視覺風格 (Visuals)</div>
+                    
+                    <div class="space-y-3">
+                        <label class="flex items-center cursor-pointer gap-3">
+                            <input type="radio" name="vis-style" value="icon" class="w-5 h-5 accent-blue-500">
+                            <span>卡通圖案 (預設)</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer gap-3">
+                            <input type="radio" name="vis-style" value="text" class="w-5 h-5 accent-blue-500">
+                            <span>僅文字</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer gap-3">
+                            <input type="radio" name="vis-style" value="real" class="w-5 h-5 accent-blue-500" onchange="toggleImageUpload()">
+                            <span>真人手勢照片 (需上傳)</span>
+                        </label>
+                    </div>
+
+                    <!-- 圖片上傳區 (隱藏式) -->
+                    <div id="img-upload-area" class="hidden mt-4 bg-gray-50 p-3 rounded-lg">
+                        <div class="text-xs text-red-500 mb-2">* 請從電腦選取檔案</div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="text-center">
+                                <div class="text-xs mb-1">剪刀</div>
+                                <div class="w-16 h-16 bg-gray-200 mx-auto rounded overflow-hidden relative cursor-pointer hover:opacity-80 border" onclick="triggerFile('scissors')">
+                                    <img id="prev-scissors" class="w-full h-full object-cover hidden">
+                                    <i class="fa-solid fa-plus absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xs mb-1">石頭</div>
+                                <div class="w-16 h-16 bg-gray-200 mx-auto rounded overflow-hidden relative cursor-pointer hover:opacity-80 border" onclick="triggerFile('rock')">
+                                    <img id="prev-rock" class="w-full h-full object-cover hidden">
+                                    <i class="fa-solid fa-plus absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xs mb-1">布</div>
+                                <div class="w-16 h-16 bg-gray-200 mx-auto rounded overflow-hidden relative cursor-pointer hover:opacity-80 border" onclick="triggerFile('paper')">
+                                    <img id="prev-paper" class="w-full h-full object-cover hidden">
+                                    <i class="fa-solid fa-plus absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" id="file-scissors" accept="image/*" class="hidden" onchange="handleImgUpload(this, 'scissors')">
+                        <input type="file" id="file-rock" accept="image/*" class="hidden" onchange="handleImgUpload(this, 'rock')">
+                        <input type="file" id="file-paper" accept="image/*" class="hidden" onchange="handleImgUpload(this, 'paper')">
+                    </div>
+                </div>
+
+                <!-- D. 教學鷹架 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-lg font-bold text-gray-800 mb-3 border-b pb-2">教學鷹架 (Scaffolding)</div>
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="text-gray-600">顯示社交腳本 (贏/輸對話)</span>
+                        <input type="checkbox" id="set-script" class="w-6 h-6 accent-blue-500">
+                    </label>
+                </div>
+            </div>
+
+            <button onclick="saveAndExitBackend()" class="btn bg-blue-600 hover:bg-blue-700 text-white text-xl px-12 py-3 shadow-md rounded-xl mt-4">
+                儲存並返回首頁
+            </button>
+        </div>
+
+    </div>
+
+    <!-- 邏輯程式碼 -->
+    <script>
+        // --- 核心變數 ---
+        const PIN_CODE = "1005";
+        
+        let settings = {
+            soundClick: true,
+            soundWin: true,
+            random: false,
+            impulse: true,
+            showScore: true, // 預設開啟
+            visualStyle: 'icon', // icon, text, real
+            script: false
+        };
+
+        let customImages = {
+            rock: null,
+            paper: null,
+            scissors: null
+        };
+
+        let gameState = {
+            teamA: { name: 'A隊', score: 0 },
+            teamB: { name: 'B隊', score: 0 },
+            turnOrder: [],
+            currentTurnIndex: 0,
+            colorScheme: 'normal', // normal (A=Blue), swap (A=Pink)
+            selectionA: null,
+            selectionB: null
+        };
+
+        let tempSelection = null;
+        let pinBuffer = "";
+        let pendingAction = null; 
+
+        // 選項定義
+        const rpsData = [
+            { id: 'rock', icon: 'fa-hand-back-fist', label: '石頭', beats: 'scissors' },
+            { id: 'paper', icon: 'fa-hand', label: '布', beats: 'rock' },
+            { id: 'scissors', icon: 'fa-hand-scissors', label: '剪刀', beats: 'paper' }
+        ];
+
+        // --- 初始化 ---
+        window.onload = function() {
+            loadFromStorage();
+            updateScoreBoardVisibility('p-home');
+        };
+
+        function loadFromStorage() {
+            const savedSettings = localStorage.getItem('rps_settings');
+            const savedImages = localStorage.getItem('rps_images');
+            if (savedSettings) settings = JSON.parse(savedSettings);
+            if (savedImages) customImages = JSON.parse(savedImages);
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('rps_settings', JSON.stringify(settings));
+            localStorage.setItem('rps_images', JSON.stringify(customImages));
+        }
+
+        // --- 導航系統 ---
+        function goToPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            updateScoreBoardVisibility(pageId);
+            if(pageId === 'p-home') resetScores();
+        }
+
+        function updateScoreBoardVisibility(activePageId) {
+            const sb = document.getElementById('scoreboard');
+            // 加入 'p-animation' 到允許顯示名單
+            const allowedPages = ['p-game-select', 'p-transition', 'p-animation', 'p-result', 'p-next-round-setup'];
+
+            if (settings.showScore && allowedPages.includes(activePageId)) {
+                sb.classList.remove('hidden');
+            } else {
+                sb.classList.add('hidden');
+            }
+        }
+
+        // --- 隊伍設定 ---
+        let firstTurnChoice = null;
+
+        function setFirstTurn(team) {
+            firstTurnChoice = team;
+            document.querySelectorAll('.first-turn-btn').forEach(b => {
+                b.classList.remove('ring-4', 'border-blue-500', 'border-pink-500');
+            });
+            const btn = document.querySelector(`.first-turn-btn[data-team="${team}"]`);
+            btn.classList.add('ring-4', team==='A'?'ring-blue-200':'ring-pink-200', team==='A'?'border-blue-500':'border-pink-500');
+        }
+
+        function finishSetup() {
+            gameState.teamA.name = document.getElementById('setup-name-a').value || "A隊";
+            gameState.teamB.name = document.getElementById('setup-name-b').value || "B隊";
+            
+            const scheme = document.querySelector('input[name="color-scheme"]:checked').value;
+            gameState.colorScheme = scheme;
+
+            document.getElementById('sb-name-a').innerText = gameState.teamA.name;
+            document.getElementById('sb-name-b').innerText = gameState.teamB.name;
+            
+            if (!firstTurnChoice) {
+                alert("請選擇誰先開始！");
+                return;
+            }
+
+            gameState.turnOrder = firstTurnChoice === 'A' ? ['A', 'B'] : ['B', 'A'];
+
+            pendingAction = 'setup_verify';
+            showVerifyPage("老師確認", `確認密碼以開始遊戲`);
+        }
+
+        // --- 下一局設定 ---
+        function prepareNextRound() {
+            document.getElementById('next-name-a').innerText = gameState.teamA.name;
+            document.getElementById('next-name-b').innerText = gameState.teamB.name;
+            goToPage('p-next-round-setup');
+        }
+
+        function selectNextRoundStarter(team) {
+            gameState.turnOrder = team === 'A' ? ['A', 'B'] : ['B', 'A'];
+            pendingAction = 'next_round_verify';
+            showVerifyPage("驗證權限", "請老師輸入密碼進入下一局");
+        }
+
+        // --- 密碼與權限 ---
+        function requestBackendAccess() {
+            pendingAction = 'backend';
+            showVerifyPage("後台登入", "請輸入教師密碼");
+        }
+
+        function endGameVerify() {
+            pendingAction = 'end_game';
+            showVerifyPage("結束遊戲", "確認結束並清除分數");
+        }
+
+        function showVerifyPage(title, desc) {
+            document.getElementById('verify-title').innerText = title;
+            document.getElementById('verify-desc').innerText = desc;
+            clearPin();
+            goToPage('p-verify');
+        }
+
+        function addPin(num) {
+            if (pinBuffer.length < 4) {
+                pinBuffer += num;
+                document.getElementById('pin-input').value = pinBuffer.replace(/./g, '*');
+            }
+        }
+        function clearPin() {
+            pinBuffer = "";
+            document.getElementById('pin-input').value = "";
+            document.getElementById('pin-error').classList.add('hidden');
+        }
+        function cancelPin() {
+            if (pendingAction === 'setup_verify') goToPage('p-setup');
+            else if (pendingAction === 'backend') goToPage('p-home');
+            else if (pendingAction === 'end_game' || pendingAction === 'next_round_verify') goToPage('p-result');
+        }
+        function submitPin() {
+            if (pinBuffer === PIN_CODE) {
+                if (pendingAction === 'setup_verify' || pendingAction === 'next_round_verify') {
+                    startRound();
+                } else if (pendingAction === 'backend') {
+                    initBackendUI();
+                    goToPage('p-backend');
+                } else if (pendingAction === 'end_game') {
+                    goToPage('p-home');
+                }
+            } else {
+                document.getElementById('pin-error').classList.remove('hidden');
+                setTimeout(clearPin, 800);
+            }
+        }
+
+        // --- 遊戲邏輯 ---
+        function startRound() {
+            gameState.currentTurnIndex = 0;
+            gameState.selectionA = null;
+            gameState.selectionB = null;
+            loadTurnPage();
+        }
+
+        function loadTurnPage() {
+            const currentTeamKey = gameState.turnOrder[gameState.currentTurnIndex];
+            const currentTeamName = currentTeamKey === 'A' ? gameState.teamA.name : gameState.teamB.name;
+            
+            let isBlue = false;
+            if (gameState.colorScheme === 'normal') isBlue = (currentTeamKey === 'A');
+            else isBlue = (currentTeamKey === 'B');
+
+            const container = document.getElementById('select-container');
+            const title = document.getElementById('turn-title');
+
+            container.className = "w-full h-full flex flex-col items-center justify-center rounded-3xl p-4 transition-colors duration-500";
+            title.className = "text-4xl font-black mb-10 text-center drop-shadow-md";
+
+            if (isBlue) {
+                container.classList.add('bg-serenity-solid');
+                title.classList.add('theme-serenity-text');
+            } else {
+                container.classList.add('bg-rose-solid');
+                title.classList.add('theme-rose-text');
+            }
+
+            title.innerText = `請 ${currentTeamName} 選擇`;
+            
+            renderOptions();
+
+            const btn = document.getElementById('btn-confirm-selection');
+            btn.disabled = true;
+            btn.classList.add('opacity-40');
+            tempSelection = null;
+
+            goToPage('p-game-select');
+
+            if (settings.impulse) {
+                const mask = document.getElementById('impulse-mask');
+                mask.classList.remove('hidden');
+                setTimeout(() => mask.classList.add('hidden'), 1500);
+            }
+        }
+
+        function renderOptions() {
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            let options = [...rpsData];
+            if (settings.random) options.sort(() => Math.random() - 0.5);
+
+            options.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'rps-btn cursor-pointer';
+                btn.onclick = () => selectOption(opt.id, btn);
+                
+                if (settings.visualStyle === 'icon') {
+                    let extraStyle = opt.id === 'scissors' ? 'style="transform: rotate(90deg); display: inline-block;"' : '';
+                    btn.innerHTML = `<i class="fa-solid ${opt.icon} rps-icon" ${extraStyle}></i>`;
+                } else if (settings.visualStyle === 'text') {
+                    btn.innerHTML = `<span class="rps-text">${opt.label}</span>`;
+                } else if (settings.visualStyle === 'real') {
+                    const imgSrc = customImages[opt.id];
+                    if (imgSrc) {
+                        btn.innerHTML = `<img src="${imgSrc}" class="rps-img">`;
+                    } else {
+                        btn.innerHTML = `<span class="text-sm text-gray-400">未設定圖片<br>${opt.label}</span>`;
+                    }
+                }
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(id, el) {
+            document.querySelectorAll('.rps-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+            tempSelection = id;
+            
+            const btn = document.getElementById('btn-confirm-selection');
+            btn.disabled = false;
+            btn.classList.remove('opacity-40');
+            
+            if(settings.soundClick) playTone(400, 0.1);
+        }
+
+        function confirmSelection() {
+            const currentTeamKey = gameState.turnOrder[gameState.currentTurnIndex];
+            if (currentTeamKey === 'A') gameState.selectionA = tempSelection;
+            else gameState.selectionB = tempSelection;
+
+            if (settings.soundClick) playTone(600, 0.1);
+
+            if (gameState.currentTurnIndex === 0) {
+                // 第一隊選完 -> 過場
+                gameState.currentTurnIndex++;
+                const nextTeamKey = gameState.turnOrder[gameState.currentTurnIndex];
+                const nextName = nextTeamKey === 'A' ? gameState.teamA.name : gameState.teamB.name;
+                document.getElementById('trans-title').innerText = `換 ${nextName} 準備！`;
+                goToPage('p-transition');
+            } else {
+                // 第二隊選完 -> 進入動畫 -> 再顯示結果
+                playShowdownAnimation();
+            }
+        }
+
+        function startNextTurn() {
+            loadTurnPage();
+        }
+
+        // --- NEW: 猜拳動畫邏輯 ---
+        function playShowdownAnimation() {
+            // 1. 設定動畫頁面資訊
+            const handA = document.getElementById('anim-hand-a');
+            const handB = document.getElementById('anim-hand-b');
+            const nameA = document.getElementById('anim-name-a');
+            const nameB = document.getElementById('anim-name-b');
+            const animText = document.getElementById('anim-text');
+
+            nameA.innerText = gameState.teamA.name;
+            nameB.innerText = gameState.teamB.name;
+            
+            // 根據顏色設定 (判斷誰是藍誰是粉)
+            let isANormal = (gameState.colorScheme === 'normal');
+            
+            nameA.className = isANormal ? "text-3xl font-bold mb-4 text-serenity" : "text-3xl font-bold mb-4 text-rose";
+            nameB.className = isANormal ? "text-3xl font-bold mb-4 text-rose" : "text-3xl font-bold mb-4 text-serenity";
+            
+            handA.className = `fa-solid fa-hand-back-fist anim-hand-left ${isANormal ? 'text-serenity' : 'text-rose'}`;
+            handB.className = `fa-solid fa-hand-back-fist anim-hand-right ${isANormal ? 'text-rose' : 'text-serenity'}`;
+
+            // 2. 切換到動畫頁
+            goToPage('p-animation');
+
+            // 3. 執行節奏：剪刀 -> 石頭 -> 布 -> 結果
+            // 0s: 剪刀...
+            animText.innerText = "剪刀...";
+            animText.classList.remove('anim-text-pop'); // reset anim
+            void animText.offsetWidth; // trigger reflow
+            animText.classList.add('anim-text-pop');
+            if(settings.soundClick) playTone(300, 0.1);
+
+            // 0.8s: 石頭...
+            setTimeout(() => {
+                animText.innerText = "石頭...";
+                animText.classList.remove('anim-text-pop');
+                void animText.offsetWidth;
+                animText.classList.add('anim-text-pop');
+                if(settings.soundClick) playTone(300, 0.1);
+            }, 800);
+
+            // 1.6s: 布！
+            setTimeout(() => {
+                animText.innerText = "布！";
+                animText.classList.remove('anim-text-pop');
+                void animText.offsetWidth;
+                animText.classList.add('anim-text-pop');
+                if(settings.soundClick) playTone(500, 0.2);
+            }, 1600);
+
+            // 2.4s: 進入結果
+            setTimeout(() => {
+                showResult();
+            }, 2400);
+        }
+
+        // --- 結果與計分 ---
+        function showResult() {
+            goToPage('p-result');
+            
+            const aVal = gameState.selectionA;
+            const bVal = gameState.selectionB;
+            
+            renderResultContent('a', aVal);
+            renderResultContent('b', bVal);
+            
+            document.getElementById('res-name-a').innerText = gameState.teamA.name;
+            document.getElementById('res-name-b').innerText = gameState.teamB.name;
+
+            document.getElementById('crown-a').classList.add('opacity-0');
+            document.getElementById('crown-b').classList.add('opacity-0');
+            document.getElementById('script-a').classList.add('hidden');
+            document.getElementById('script-b').classList.add('hidden');
+            document.getElementById('res-box-a').classList.remove('opacity-50', 'scale-90', 'winner-anim');
+            document.getElementById('res-box-b').classList.remove('opacity-50', 'scale-90', 'winner-anim');
+
+            const aObj = rpsData.find(o => o.id === aVal);
+            
+            let winner = null;
+            let resultText = "";
+
+            if (aVal === bVal) {
+                resultText = "平手！";
+            } else if (aObj.beats === bVal) {
+                resultText = `${gameState.teamA.name} 贏了！`;
+                winner = 'A';
+                gameState.teamA.score++;
+            } else {
+                resultText = `${gameState.teamB.name} 贏了！`;
+                winner = 'B';
+                gameState.teamB.score++;
+            }
+
+            document.getElementById('result-title').innerText = resultText;
+            updateScoresUI();
+            
+            if (winner) {
+                highlightWinner(winner);
+                if(settings.soundWin) playWinSound();
+            }
+
+            if(settings.script) showScripts(winner);
+        }
+
+        function renderResultContent(teamSuffix, valId) {
+            const container = document.getElementById(`res-content-${teamSuffix}`);
+            const data = rpsData.find(o => o.id === valId);
+            
+            if (settings.visualStyle === 'icon') {
+                let extraStyle = valId === 'scissors' ? 'style="transform: rotate(90deg); display: inline-block;"' : '';
+                container.innerHTML = `<i class="fa-solid ${data.icon} text-6xl text-gray-700" ${extraStyle}></i>`;
+            } else if (settings.visualStyle === 'text') {
+                container.innerHTML = `<span class="text-4xl font-bold text-gray-700">${data.label}</span>`;
+            } else {
+                const src = customImages[valId];
+                container.innerHTML = src ? `<img src="${src}" class="w-full h-full object-cover">` : `<span class="text-gray-400">${data.label}</span>`;
+            }
+        }
+
+        function highlightWinner(w) {
+            const winBox = document.getElementById(`res-box-${w.toLowerCase()}`);
+            const loseBox = document.getElementById(`res-box-${w === 'A' ? 'b' : 'a'}`);
+            const crown = document.getElementById(`crown-${w.toLowerCase()}`);
+
+            winBox.classList.add('winner-anim');
+            crown.classList.remove('opacity-0');
+            loseBox.classList.add('opacity-50', 'scale-90');
+        }
+
+        function updateScoresUI() {
+            document.getElementById('sb-score-a').innerText = gameState.teamA.score;
+            document.getElementById('sb-score-b').innerText = gameState.teamB.score;
+        }
+
+        function resetScores() {
+            gameState.teamA.score = 0;
+            gameState.teamB.score = 0;
+            updateScoresUI();
+        }
+
+        function showScripts(winner) {
+            const sa = document.getElementById('script-a');
+            const sb = document.getElementById('script-b');
+            sa.classList.remove('hidden');
+            sb.classList.remove('hidden');
+            
+            if (winner === 'A') {
+                sa.innerText = "耶！我贏了！";
+                sb.innerText = "沒關係，下次加油！";
+            } else if (winner === 'B') {
+                sb.innerText = "耶！我贏了！";
+                sa.innerText = "沒關係，下次加油！";
+            } else {
+                sa.innerText = "平手，再一次！";
+                sb.innerText = "平手，再一次！";
+            }
+        }
+
+        // --- 後台邏輯 ---
+        function initBackendUI() {
+            document.getElementById('set-sound-click').checked = settings.soundClick;
+            document.getElementById('set-sound-win').checked = settings.soundWin;
+            document.getElementById('set-random').checked = settings.random;
+            document.getElementById('set-impulse').checked = settings.impulse;
+            document.getElementById('set-show-score').checked = settings.showScore;
+            document.getElementById('set-script').checked = settings.script;
+            
+            document.querySelector(`input[name="vis-style"][value="${settings.visualStyle}"]`).checked = true;
+            toggleImageUpload(); 
+
+            ['rock', 'paper', 'scissors'].forEach(t => updateImgPreview(t));
+        }
+
+        function toggleImageUpload() {
+            const style = document.querySelector('input[name="vis-style"]:checked').value;
+            const area = document.getElementById('img-upload-area');
+            if (style === 'real') area.classList.remove('hidden');
+            else area.classList.add('hidden');
+        }
+
+        function triggerFile(type) {
+            document.getElementById(`file-${type}`).click();
+        }
+
+        function handleImgUpload(input, type) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    customImages[type] = e.target.result;
+                    updateImgPreview(type);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateImgPreview(type) {
+            const img = document.getElementById(`prev-${type}`);
+            if (customImages[type]) {
+                img.src = customImages[type];
+                img.classList.remove('hidden');
+            }
+        }
+
+        function saveAndExitBackend() {
+            settings.soundClick = document.getElementById('set-sound-click').checked;
+            settings.soundWin = document.getElementById('set-sound-win').checked;
+            settings.random = document.getElementById('set-random').checked;
+            settings.impulse = document.getElementById('set-impulse').checked;
+            settings.showScore = document.getElementById('set-show-score').checked;
+            settings.script = document.getElementById('set-script').checked;
+            settings.visualStyle = document.querySelector('input[name="vis-style"]:checked').value;
+
+            saveToStorage(); 
+            updateScoreBoardVisibility('p-home');
+            goToPage('p-home');
+        }
+
+        // --- 簡易音效生成 ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+
+        function playTone(freq, duration) {
+            if (ctx.state === 'suspended') ctx.resume();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
+            osc.stop(ctx.currentTime + duration);
+        }
+
+        function playWinSound() {
+            setTimeout(() => playTone(523.25, 0.1), 0);
+            setTimeout(() => playTone(659.25, 0.1), 150);
+            setTimeout(() => playTone(783.99, 0.2), 300);
+        }
+
+    </script>
+</body>
+</html>
